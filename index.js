@@ -64,15 +64,27 @@ app.get("/scrape", async (req, res) => {
 })
 
 app.post("/extract", async (req, res) => {
-  const { html, selector } = req.body;
+  const { url, selector } = req.body;
 
-  if (!html || !selector) {
-    return res.status(400).send("HTML content and selector are required.");
+  if (!url || !selector) {
+    return res.status(400).send("URL and selector are required.");
   }
 
+  let browser;
+
   try {
+    // Launch a new Puppeteer browser instance
+    browser = await puppeteer.launch();
+    const page = await browser.newPage();
+
+    // Navigate to the provided URL
+    await page.goto(url);
+
+    // Get the entire HTML content of the page
+    const htmlContent = await page.content();
+
     // Load the HTML into Cheerio
-    const $ = cheerio.load(html);
+    const $ = cheerio.load(htmlContent);
 
     // Use the selector to extract data
     const extractedData = [];
