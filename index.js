@@ -1,6 +1,9 @@
 const express = require("express");
-const puppeteer = require("puppeteer")
+const puppeteer = require("puppeteer-extra")
 const prettier = require("prettier");
+const StealthPlugin = require('puppeteer-extra-plugin-stealth')
+
+puppeteer.use(StealthPlugin())
 
 const app = express();
 const port = process.env.PORT || 3001;
