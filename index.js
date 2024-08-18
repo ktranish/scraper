@@ -63,25 +63,20 @@ app.get("/scrape", async (req, res) => {
 })
 
 app.post("/extract", async (req, res) => {
-  const { html, selectors } = req.body;
+  const { html, selector } = req.body;
 
-  if (!html || !selectors || !Array.isArray(selectors) || selectors.length === 0) {
-    return res.status(400).send("HTML content and a list of selectors are required.");
+  if (!html || !selector) {
+    return res.status(400).send("HTML content and selector are required.");
   }
 
   try {
     // Load the HTML into Cheerio
     const $ = cheerio.load(html);
 
-    // Object to hold the extracted data for each selector
-    const extractedData = {};
-
-    // Loop through each selector and extract the corresponding data
-    selectors.forEach((selector) => {
-      extractedData[selector] = [];
-      $(selector).each((_, element) => {
-        extractedData[selector].push($(element).text());
-      });
+    // Use the selector to extract data
+    const extractedData = [];
+    $(selector).each((index, element) => {
+      extractedData.push($(element).text());
     });
 
     // Return the extracted data
