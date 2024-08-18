@@ -2,6 +2,7 @@ const express = require("express");
 const puppeteer = require("puppeteer-extra")
 const prettier = require("prettier");
 const StealthPlugin = require('puppeteer-extra-plugin-stealth')
+const cheerio = require("cheerio");
 
 puppeteer.use(StealthPlugin())
 
@@ -75,7 +76,7 @@ app.post("/extract", async (req, res) => {
 
     // Use the selector to extract data
     const extractedData = [];
-    $(selector).each((index, element) => {
+    $(selector).each((_, element) => {
       extractedData.push($(element).text());
     });
 
