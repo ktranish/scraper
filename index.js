@@ -77,11 +77,11 @@ app.post("/extract", async (req, res) => {
     // Use the selector to extract data
     const extractedData = [];
     $(selector).each((_, element) => {
-      extractedData.push($(element).text());
+      extractedData.push($(element).html());
     });
 
     // Return the extracted data
-    res.status(200).json({ extractedData });
+    res.status(200).send(extractedData.join());
   } catch (error) {
     console.error("Error extracting data:", error);
     res.status(500).send("Failed to extract data. Please try again later.");
