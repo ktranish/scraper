@@ -1,10 +1,10 @@
 const express = require("express");
-const puppeteer = require("puppeteer-extra")
+const puppeteer = require("puppeteer-extra");
 const prettier = require("prettier");
-const StealthPlugin = require('puppeteer-extra-plugin-stealth')
+const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 const cheerio = require("cheerio");
 
-puppeteer.use(StealthPlugin())
+puppeteer.use(StealthPlugin());
 
 const app = express();
 const port = process.env.PORT || 3001;
@@ -12,63 +12,64 @@ const port = process.env.PORT || 3001;
 app.use(express.json()); // Middleware to parse JSON bodies
 
 app.get("/", (_, res) => {
-  res.send("Hello World!")
-})
+  res.send("Hello World!");
+});
+
+const launchBrowser = async () => {
+  return puppeteer.launch({
+    args: [
+      "--disable-setuid-sandbox",
+      "--no-sandbox",
+      "--single-process",
+      "--no-zygote",
+    ],
+  });
+};
+
+const formatHtml = async (htmlContent) => {
+  try {
+    return await prettier.format(htmlContent, { parser: "html" });
+  } catch {
+    return htmlContent; // Fallback to unformatted HTML if formatting fails
+  }
+};
+
+const scrapePage = async (url) => {
+  const browser = await launchBrowser();
+  const page = await browser.newPage();
+  await page.goto(url);
+  const htmlContent = await page.content();
+  await browser.close();
+  return htmlContent;
+};
 
 app.get("/scrape", async (req, res) => {
-  // Extract the url parameter from the query string
-  const url = req.query.url;
+  const { url } = req.query;
 
-  // Ensure that the URL parameter is provided
   if (!url) {
     return res.status(400).send("URL parameter is missing.");
   }
 
-  let browser;
-
-  try{
-    // Launch a new Puppeteer browser instance
-    browser = await puppeteer.launch({
-      args: [
-        "--disable-setuid-sandbox",
-        "--no-sandbox",
-        "--single-process",
-        "--no-zygote",
-      ],
-    });
-    const page = await browser.newPage();
-
-    // Navigate to the provided URL
-    await page.goto(url);
-
-    // Get the entire HTML content of the page
-    const htmlContent = await page.content();
-
-    let formattedHtml;
-    try {
-      // Attempt to format the HTML using Prettier
-      formattedHtml = await prettier.format(htmlContent, { parser: "html" });
-    } catch {
-      // Fallback to unformatted HTML if formatting fails
-      formattedHtml = htmlContent;
-    }
-
-    // Set Content-Type to text/plain to ensure raw HTML is displayed as text
+  try {
+    const htmlContent = await scrapePage(url);
+    const formattedHtml = await formatHtml(htmlContent);
     res.set("Content-Type", "text/plain");
-
-    // Return the HTML content directly as the response
     res.status(200).send(formattedHtml);
-  }
-  catch(error){
+  } catch (error) {
     console.error("Error scraping the page:", error);
     res.status(500).send("Failed to scrape the page. Please try again later.");
   }
-  finally{
-    if (browser) {
-      await browser.close(); // Ensure the browser is closed even if an error occurs
-    }
-  }
-})
+});
+
+const extractData = async (url, selector) => {
+  const htmlContent = await scrapePage(url);
+  const $ = cheerio.load(htmlContent);
+  const extractedData = [];
+  $(selector).each((_, element) => {
+    extractedData.push($(element).html());
+  });
+  return extractedData;
+};
 
 app.post("/extract", async (req, res) => {
   const { url, selector } = req.body;
@@ -77,43 +78,15 @@ app.post("/extract", async (req, res) => {
     return res.status(400).send("URL and selector are required.");
   }
 
-  let browser;
-
   try {
-    // Launch a new Puppeteer browser instance
-    browser = await puppeteer.launch({
-      args: [
-        "--disable-setuid-sandbox",
-        "--no-sandbox",
-        "--single-process",
-        "--no-zygote",
-      ],
-    });
-    const page = await browser.newPage();
-
-    // Navigate to the provided URL
-    await page.goto(url);
-
-    // Get the entire HTML content of the page
-    const htmlContent = await page.content();
-
-    // Load the HTML into Cheerio
-    const $ = cheerio.load(htmlContent);
-
-    // Use the selector to extract data
-    const extractedData = [];
-    $(selector).each((_, element) => {
-      extractedData.push($(element).html());
-    });
-
-    // Return the extracted data
+    const extractedData = await extractData(url, selector);
     res.status(200).send(extractedData.join());
   } catch (error) {
     console.error("Error extracting data:", error);
     res.status(500).send("Failed to extract data. Please try again later.");
   }
-})
+});
 
 app.listen(port, () => {
-  console.log(`Example app listening on port ${port}`)
+  console.log(`Example app listening on port ${port}`);
 });
