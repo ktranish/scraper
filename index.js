@@ -39,6 +39,7 @@ const scrapePage = async (url) => {
   const page = await browser.newPage();
   await page.goto(url);
   const htmlContent = await page.content();
+  await page.close()
   await browser.close();
   return htmlContent;
 };
