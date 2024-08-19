@@ -28,7 +28,14 @@ app.get("/scrape", async (req, res) => {
 
   try{
     // Launch a new Puppeteer browser instance
-    browser = await puppeteer.launch();
+    browser = await puppeteer.launch({
+      args: [
+        "--disable-setuid-sandbox",
+        "--no-sandbox",
+        "--single-process",
+        "--no-zygote",
+      ],
+    });
     const page = await browser.newPage();
 
     // Navigate to the provided URL
@@ -74,7 +81,14 @@ app.post("/extract", async (req, res) => {
 
   try {
     // Launch a new Puppeteer browser instance
-    browser = await puppeteer.launch();
+    browser = await puppeteer.launch({
+      args: [
+        "--disable-setuid-sandbox",
+        "--no-sandbox",
+        "--single-process",
+        "--no-zygote",
+      ],
+    });
     const page = await browser.newPage();
 
     // Navigate to the provided URL
